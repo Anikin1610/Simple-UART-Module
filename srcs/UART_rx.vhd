@@ -7,8 +7,8 @@
 -- Description:
 --    This module consists of the state machine to recieve and store the incoming bits
 ------------------------------------------------------------------------------------------
-			
-			
+            
+            
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -40,16 +40,16 @@ begin
     ---------------------------------------------------------------------------------------------------------------------------------------------------------
     
     invalid_check:process(rst, rx_busy_sig)                     
-	begin
-	   if rst = '1' then
-	       rx_invalid <= '0';	       
-	   elsif falling_edge(rx_busy_sig) then
+    begin
+       if rst = '1' then
+           rx_invalid <= '0';	       
+       elsif falling_edge(rx_busy_sig) then
            if rx_reg(8) = '0' then
-	           rx_invalid <= '1';
-	       else
-	           rx_invalid <= '0';
-	       end if;
-	   end if;
+               rx_invalid <= '1';
+           else
+               rx_invalid <= '0';
+           end if;
+       end if;
     end process invalid_check;
 
 
@@ -93,7 +93,7 @@ begin
                             cState_rx <= recieve_bits;
                         else                                        -- If 9 bits have been recieved clear the bit_count counter and go to idle state   
                             cState_rx <= idle;
-							bit_count <= to_unsigned(0, 4);
+                            bit_count <= to_unsigned(0, 4);
                         end if;
                                         
                     when others =>                                  -- Default case

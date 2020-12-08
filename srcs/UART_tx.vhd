@@ -7,8 +7,8 @@
 -- Description:
 --    This module consists of the state machine to transmit the given bits serially
 ------------------------------------------------------------------------------------------
-			
-			
+            
+            
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
