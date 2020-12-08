@@ -38,7 +38,7 @@ architecture UART_beh of UART is
 begin
     
     ---------------------------------------------------------------------------------------------------------------------------------------------------------
-    -- Clock signal generator whose frqquency is 16x the baud rate
+    -- Clock signal generator whose frequency is 16x the baud rate
     ---------------------------------------------------------------------------------------------------------------------------------------------------------
 
     clk_gen : entity work.baud_pulse_gen
