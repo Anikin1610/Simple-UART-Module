@@ -18,7 +18,7 @@ entity baud_pulse_gen is
                     clk_rate : integer := 12e6);		-- Clock frequency of the FPGA
     Port ( clk : in  STD_LOGIC;							-- Clock signal from Crystal Oscillator
            baud_oversampled : out  STD_LOGIC);			-- Output clock pulse at 16x the baud rate
-end baud_rate_gen;
+end baud_pulse_gen;
 
 architecture baud_beh of baud_pulse_gen is
 
