@@ -1,12 +1,12 @@
---------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------
 -- Created by : Anirudh Srinivasan
 -- 
 -- Design Name: UART Module
 -- Component Name: Baud pulse generator
 -- Target Device: Spartan 6
 -- Description:
---    This module generates a clock pulse at 16 times the baud rate.
---------------------------------------------------------------------------------
+--    This module generates a clock pulse at a frequency 16 times the baud rate.
+-----------------------------------------------------------------------------------
             
             
 
