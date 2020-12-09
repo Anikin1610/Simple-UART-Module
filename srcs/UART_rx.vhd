@@ -29,6 +29,8 @@ architecture rx_beh of UART_rx is
     signal rx_busy_sig : STD_LOGIC := '0';                      
     signal baud_count, bit_count : unsigned(3 downto 0) := (others => '0'); -- Counters used to counting the clock pulses and count the number of bits recieved respectively
     signal rx_reg : STD_LOGIC_VECTOR(8 downto 0) := (others => '0');        -- Shift register used to storing each of the recieved bit (Stores 8 data bits and 1 stop bit)
+	signal rx_SYNC_FF1, rx_SYNC_FF2 : STD_LOGIC := '0';                     -- Flip-Flops to synchronize the asynchronous rx_in with the baud_os clock signal
+
 begin
 
     rx_data <= rx_reg(7 downto 0);                              -- Only the data bits are required as output
@@ -60,8 +62,10 @@ begin
 
     rx_process:process(baud_os)
     begin
-        if rising_edge(baud_os) then
-            if rst = '1' then                   -- When the reset input is high clear all counters and shift registers.
+		if rising_edge(baud_os) then
+			rx_SYNC_FF1 <= rx_in;
+			rx_SYNC_FF2 <= rx_SYNC_FF1;
+			if rst = '1' then                   -- When the reset input is high clear all counters and shift registers.
                 cState_rx <= idle;
                 baud_count <= to_unsigned(0, 4);
                 bit_count <= to_unsigned(0, 4);
@@ -70,10 +74,10 @@ begin
                 case cState_rx is
                     when idle =>
                         rx_busy_sig <= '0';                     -- Deassert the busy flag
-                        if rx_in = '0' and baud_count < 8 then  -- Wait for 8 clock periods (1 clock period = baud rate / 16) before sampling the start bit. 
+                        if rx_SYNC_FF2 = '0' and baud_count < 8 then  -- Wait for 8 clock periods (1 clock period = baud rate / 16) before sampling the start bit. 
                             baud_count <= baud_count + 1;
                             cState_rx <= idle;
-                        elsif rx_in = '0' and baud_count = 8 then   -- If the recieved bit is '0' after 8 clock periods then a start bit has been encountered so we start recieveing the data bits.
+                        elsif rx_SYNC_FF2 = '0' and baud_count = 8 then   -- If the recieved bit is '0' after 8 clock periods then a start bit has been encountered so we start recieveing the data bits.
                             cState_rx <= recieve_bits;
                             baud_count <= to_unsigned(0, 4);
                         else                                    -- Else clear the baud_count counter and stay in idle state.
@@ -87,7 +91,7 @@ begin
                             baud_count <= baud_count + 1;
                         
                         elsif bit_count < 9 then                    -- If less that 9 bits (8 data bits + 1 stop bit) have been recieved shift the recieved bit into shift register
-                            rx_reg <= rx_in & rx_reg(8 downto 1);
+                            rx_reg <= rx_SYNC_FF2 & rx_reg(8 downto 1);
                             bit_count <= bit_count + 1;
                             baud_count <= to_unsigned(0, 4);
                             cState_rx <= recieve_bits;
