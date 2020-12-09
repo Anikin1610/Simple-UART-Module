@@ -44,7 +44,7 @@ begin
     invalid_check:process(rst, rx_busy_sig)                     
     begin
        if rst = '1' then
-           rx_invalid <= '0';	       
+           rx_invalid <= '0';       
        elsif falling_edge(rx_busy_sig) then
            if rx_reg(8) = '0' then
                rx_invalid <= '1';
