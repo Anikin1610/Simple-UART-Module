@@ -29,7 +29,7 @@ architecture rx_beh of UART_rx is
     signal rx_busy_sig : STD_LOGIC := '0';                      
     signal baud_count, bit_count : unsigned(3 downto 0) := (others => '0'); -- Counters used to counting the clock pulses and count the number of bits recieved respectively
     signal rx_reg : STD_LOGIC_VECTOR(8 downto 0) := (others => '0');        -- Shift register used to storing each of the recieved bit (Stores 8 data bits and 1 stop bit)
-	signal rx_SYNC_FF1, rx_SYNC_FF2 : STD_LOGIC := '0';                     -- Flip-Flops to synchronize the asynchronous rx_in with the baud_os clock signal
+    signal rx_SYNC_FF1, rx_SYNC_FF2 : STD_LOGIC := '0';                     -- Flip-Flops to synchronize the asynchronous rx_in with the baud_os clock signal
 
 begin
 
@@ -62,10 +62,10 @@ begin
 
     rx_process:process(baud_os)
     begin
-		if rising_edge(baud_os) then
-			rx_SYNC_FF1 <= rx_in;
-			rx_SYNC_FF2 <= rx_SYNC_FF1;
-			if rst = '1' then                   -- When the reset input is high clear all counters and shift registers.
+        if rising_edge(baud_os) then
+            rx_SYNC_FF1 <= rx_in;
+            rx_SYNC_FF2 <= rx_SYNC_FF1;
+            if rst = '1' then                   -- When the reset input is high clear all counters and shift registers.
                 cState_rx <= idle;
                 baud_count <= to_unsigned(0, 4);
                 bit_count <= to_unsigned(0, 4);
