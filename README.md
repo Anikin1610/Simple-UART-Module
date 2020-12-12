@@ -10,6 +10,7 @@ An easy to use UART module with parity and auto baud rate detection.
   #### Baud pulse generator : 
       The baud pulse generator has two functions - if the auto baud rate detection is enabled then it determines the baud rate and then it generates a clock pulse with a frequency 16 times the baud rate. 
       If the auto baud rate detection is enabled, the module will expect any odd valued data to be transmitted (i.e. LSB = '1'). Commonly used synchronization characters are 'u' and 'a'.
+      The minimum baud rate achievable with a 16 bit counter at 12MHz clock frequency is 300 bps. The size of the counter can be made smaller or bigger according to the application.
       
   #### UART reciever module :
        The UART reciever expects 1 Start bit, 8 data bits and 1 Stop bit at a minimum. 
@@ -30,5 +31,5 @@ The testbench in the tb directory tests the module by daisy chaining the serial 
 
 ## Known Issues
 
-* Using a clock frequency of 12 MHz the maximum baud rate at which data could be reliably recieved and transmitted was 38400 bps and the minimum usable baud rate is 4800 bps.
+* Using a clock frequency of 12 MHz the maximum baud rate at which data could be reliably recieved and transmitted was 38400 bps.
 
