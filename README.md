@@ -1,5 +1,5 @@
 # Simple-UART-Module
-An easy to use UART module with parameters to accept different clock frequencies and baud rates as per use case.
+An easy to use UART module with parity and auto baud rate detection.
 
 ## Introduction
   UART is a serial communication system which doesn't require a clock to synchronize between the transmitter and reciever. It sends data 1 bit at a time from the LSB to MSB and is framed by a start bit (generally logic '0') and a stop bit (generally logic '1').
@@ -12,10 +12,14 @@ An easy to use UART module with parameters to accept different clock frequencies
       If the auto baud rate detection is enabled, the module will expect any odd valued data to be transmitted (i.e. LSB = '1'). Commonly used synchronization characters are 'u' and 'a'.
       
   #### UART reciever module :
-       The UART reciever expects 1 Start bit, 8 data bits and 1 Stop bit at a minimum. The parity bit and type of parity used can be configured at run time using the parity_en and parity_select inputs. The module expects a clock signal oversampled at 16 times the baud rate.
+       The UART reciever expects 1 Start bit, 8 data bits and 1 Stop bit at a minimum. 
+       The parity bit and type of parity used can be configured at run time using the parity_en and parity_select inputs. 
+       The module expects a clock signal oversampled at 16 times the baud rate.
 
   #### UART transmitter module :
-        The UART transmitter transmits a minimum of 1 Start bit, 8 data bits and 1 Stop bit. Transmission of parity bit and the type of parity used can be configured at run time using the parity_en and parity_select inputs. The module expects a clock signal oversampled at 16 times the baud rate.
+        The UART transmitter transmits a minimum of 1 Start bit, 8 data bits and 1 Stop bit. 
+        Transmission of parity bit and the type of parity used can be configured at run time using the parity_en and parity_select inputs. 
+        The module expects a clock signal oversampled at 16 times the baud rate.
         
   ### UART module
         This is simply a top module used to connect the Baud pulse generator to the UART reciever and transmitter modules.
