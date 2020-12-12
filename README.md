@@ -30,5 +30,5 @@ The testbench in the tb directory tests the module by daisy chaining the serial 
 
 ## Known Issues
 
-* Using a clock frequency of 12 MHz the maximum baud rate at which data could be reliably recieved and transmitted was 38400 bps.
+* Using a clock frequency of 12 MHz the maximum baud rate at which data could be reliably recieved and transmitted was 38400 bps and the minimum usable baud rate is 4800 bps.
 
