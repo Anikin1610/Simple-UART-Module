@@ -1,4 +1,3 @@
-
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use STD.ENV.FINISH;
@@ -7,29 +6,40 @@ entity uart_tb is
 end uart_tb;
 
 architecture tb_beh of uart_tb is
-    constant baud_rate_tb : integer := 9600;
-    constant clk_rate_tb : integer := 12e6;
+
     constant baud : time := 104.16666us;			-- (1 / 9600) seconds
-    signal clk_12MHz : STD_LOGIC := '0';
-    signal rst, start_tx, rx, tx, rx_busy, tx_busy, rx_invalid : STD_LOGIC := '0';
-    signal rx_data, tx_data : STD_LOGIC_VECTOR(7 downto 0);
+    signal clk_12MHz, tb_baud_clk : STD_LOGIC := '0';
+    signal rst : STD_LOGIC := '0';
+    signal tb_rx_in : std_logic := '1';
+    signal tb_rw_en : std_logic;
+    signal tb_write_en : std_logic;
+    signal tb_write_addr : std_logic_vector(1 downto 0);
+    signal tb_write_data : std_logic_vector(31 downto 0);
+    signal tb_read_addr : std_logic_vector(1 downto 0);
+    signal tb_read_data : std_logic_vector(31 downto 0);
+    signal tb_tx_out : std_logic;
+    
+    signal reset, start_up, write_count, start_tx : std_logic := '1';
+    signal start_rx : std_logic := '0';
+    
+    signal rx_data : std_logic_vector(9 downto 0) := "1101010100";
+    signal i : integer := 0;
+    
+    
 begin
     
-    rx <= tx;			-- Gives the serial output of the transmitter back to the serial input of reciever 
-    
     DUT:entity work.UART 
-            generic map	(  baud_rate => baud_Rate_tb,
-                           clk_rate => clk_Rate_tb)
             Port map ( 	clk => clk_12MHz,
                         rst => rst,
-                        rx => rx,
-                        start_tx => start_tx,
-                        rx_busy => rx_busy,
-                        rx_invalid => rx_invalid,
-                        rx_data => rx_data,
-                        tx_busy => tx_busy,
-                        tx_data => tx_data,
-                        tx => tx);
+                        i_rx_in => tb_rx_in,
+                        i_rw_en => tb_rw_en,
+                        i_write_en => tb_write_en,
+                        i_write_addr => tb_write_addr,
+                        i_write_data => tb_write_data,
+                        i_read_addr => tb_read_addr,
+                        o_read_data => tb_read_data,
+                        o_interrupt => open,
+                        o_tx_out => tb_tx_out);
                         
     ---------------------------------------------------------------------------------------------------------------------------------------------------------
     -- Process to generate 12MHz clock signal.
@@ -42,65 +52,62 @@ begin
         wait for 41.666666666ns;  
     end process clk_gen;
     
---    tb_proc:process
---    begin
---        rx <= '1';
---        wait for 2 * baud;
---        rx <= '0';
---        wait for baud / 4;
---        wait for 1.13 us;
---        rx <= '1';
---        wait for 2.5 * baud;
---        wait for 13 us;
---        rx <= '0';
---        wait for baud;
---        rx <= '1';
---        wait for baud;
---        rx <= '0';
---        wait for baud;
---        rx <= '1';
---        wait for baud;
---        rx <= '0';
---        wait for baud;
---        rx <= '1';
---        wait for baud;
---        rx <= '0';
---        wait for baud;
---        rx <= '1';
---        wait for baud;
---        rx <= '0';
---        wait for baud;
---        rx <= '0';
---        wait for 3 * baud;
---        wait for 1.37 us;
---        rst <= '1';
---        wait for 10 us;
---        rst <= '0';
---        wait for 3 * baud;
---        finish;
-                
---    end process tb_proc;
-
-    tb_proc:process
+    baud_gen:process
     begin
-        rst <= '1';
-        wait for 10 us;
-        rst <= '0';
-        wait for 3 * baud;
-        tx_data <= "01010101";
-        wait for 2 * baud;
-        start_tx <= '1';
-        wait for baud;
-        start_tx <= '0';
-        wait for 1 ms;
-        tx_data <= "01101001";
-        wait for 2 * baud;
-        start_tx <= '1';
-        wait for baud;
-        start_tx <= '0';
-        wait for 5 ms;
-        
-        finish;
+        tb_baud_clk <= '0';
+        wait for baud / 2;
+        tb_baud_clk <= '1';
+        wait for baud / 2;
+    end process;
+    
+    tb_proc:process(clk_12MHz)
+    begin
+        if rising_edge(clk_12MHz) then
+            if reset = '1' then
+                rst <= '1';
+                reset <= '0';
+            elsif start_up = '1' then
+                rst <= '0';
+                tb_rw_en <= '1';
+                tb_write_en <= '1';
+                tb_write_addr <= "00";
+                tb_write_data(7 downto 0) <= "11001101";
+                tb_write_data(31 downto 8) <= (others => '0');
+                start_rx <= '1';
+                start_up <= '0';
+            elsif write_count = '1' then
+                tb_write_addr <= "01";
+                tb_write_data <= x"FFFFFFFF";
+                write_count <= '0';
+            elsif start_tx = '1' then
+                tb_write_addr <= "10";
+                tb_write_data(7 downto 0) <= "10101010";
+                tb_write_data(31 downto 8) <= (others => '0');
+                start_tx <= '0';
+            else
+                tb_rw_en <= '0';
+                tb_write_en <= '0';
+            end if;
+        end if;   
     end process tb_proc;
+    
+--    rx_proc:process(tb_baud_clk)
+--    begin
+--        if rising_edge(tb_baud_clk) then
+--            if start_rx = '1' then
+--                if i < 9 then
+--                    tb_rx_in <= rx_data(i);
+--                    i <= i + 1;
+--                elsif i < 15 then
+--                    tb_rx_in <= '1';
+--                    i <= i + 1;
+--                else
+--                    finish;
+--                end if;
+--            else
+--                tb_rx_in <= '1';
+--            end if;
+--        end if;
+--    end process rx_proc;
     
 end tb_beh;

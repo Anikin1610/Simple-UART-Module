@@ -5,135 +5,102 @@
 -- Component Name: Baud pulse generator
 -- Target Device: Spartan 6
 -- Description:
---    This module can auto detect the incoming baud rate and
---	  generates a clock pulse at a frequency 16 times the baud rate.
+--    This generates a clock pulse at a frequency 16 times the baud rate.
 -----------------------------------------------------------------------------------
             
             
-
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
 
 entity baud_pulse_gen is
-     generic	(	baud_rate : integer := 9600;        -- Parameter to specify the baud rate
-                    clk_freq : integer := 12e6);        -- Clock frequency of the FPGA
-    Port ( rst : in STD_LOGIC;                          -- Reset input
-           clk : in  STD_LOGIC;                         -- Clock signal from Crystal Oscillator
-           sync_byte_in : in STD_LOGIC;                 -- Serial input used for recieveing the sync character 
-           parity_en : in STD_LOGIC;                    -- Input to specify whether parity is enabled
-           auto_baud_en : in STD_LOGIC;                 -- Input to activate auto detection of baud rate
-           clk_baud_oversampled : out  STD_LOGIC;       -- Output clock pulse at 16x the baud rate
-           rx_en : out STD_LOGIC;                       -- Output to enable reciever
-           tx_en : out STD_LOGIC;                       -- Output to enable transmitter
-           rx_tx_synced : out STD_LOGIC);               -- Output the current state of synchronization	
+    generic	(   clk_freq : integer := 12e6);                -- Clock frequency of the FPGA
+    Port ( rst : in std_logic;                              --  Reset input
+           clk : in  std_logic;                             --  Clock signal from Crystal Oscillator
+           i_count_src_sel : in std_logic;                  --  Input Count source select signal (0 => ROM, 1 => External Count Register)
+           i_count_input : in std_logic_vector(31 downto 0);  --  Input from the external count value register
+           i_ROM_addr : in std_logic_vector(2 downto 0);    --  Input ROM address for selecting predefined count value
+           i_rx_busy : in std_logic;                        --  Input busy flag from reciever
+           i_tx_busy : in std_logic;                        --  Input busy flag from transmitter
+           o_clk_baud_oversampled : out  std_logic);        --  Output clock pulse at 16x the baud rate
 end baud_pulse_gen;
 
-architecture baud_beh of baud_pulse_gen is
-    
-    type sync_states is (desynced, syncing, finish_sync, synced);
-    signal cState : sync_states := desynced;
-    
-    signal tick_count, bit_count, bit_count_os, baud_count : unsigned(11 downto 0) := (others => '0');
-    signal num_bits, bits_per_frame : unsigned(3 downto 0) := (others => '0');
-    signal baud_os : STD_LOGIC := '0';
-    signal rx_SYNC_FF1, rx_SYNC_FF2 : STD_LOGIC := '0';
-    signal auto_baud_en_reg, parity_en_reg : STD_LOGIC := '0';
-
-    
+architecture baud_rtl of baud_pulse_gen is
+    --------------------------------------------------------------------------------
+    --  Initializing a 8x32 ROM with pre-defined values for various baud rates
+    --------------------------------------------------------------------------------
+    type ROM_type is array(0 to 7) of unsigned(31 downto 0);
+    signal count_ROM : ROM_type := (    to_unsigned(clk_freq / (2 * 16 * 1200), 32),
+                                        to_unsigned(clk_freq / (2 * 16 * 1800), 32),
+                                        to_unsigned(clk_freq / (2 * 16 * 2400), 32),
+                                        to_unsigned(clk_freq / (2 * 16 * 4800), 32),
+                                        to_unsigned(clk_freq / (2 * 16 * 7200), 32),
+                                        to_unsigned(clk_freq / (2 * 16 * 9600), 32), 
+                                        to_unsigned(clk_freq / (2 * 16 * 14400), 32),
+                                        to_unsigned(clk_freq / (2 * 16 * 19200), 32)); 
+                                        
+    signal s_clk_pulse_counter : unsigned(31 downto 0) := (others => '0');
+    signal s_counter_cmp_val : unsigned(31 downto 0) := (others => '0');
+    signal s_count_reg, s_count_reg_prev : unsigned(31 downto 0) := (others => '0');
+    signal s_baud_pulse : std_logic := '0';
+    signal s_ROM_addr_reg, s_ROM_addr_prev : unsigned(2 downto 0) := "101";
+    signal s_use_count_reg, s_use_count_prev : std_logic := '0';
 begin
-
-    clk_baud_oversampled <= baud_os;
-    bits_per_frame <= to_unsigned(9, 4) when parity_en_reg = '0' else   -- Number bits transmitted in one UART Frame
-                      to_unsigned(10, 4);
-     
-    sync_proc:process(clk)
+    o_clk_baud_oversampled <= s_baud_pulse;
+    
+    --------------------------------------------------------------------------------
+    --  Process to update the internal control registers only when the reciever and
+    --  transmitter are idle and to reset the internal registers
+    --------------------------------------------------------------------------------
+    update_regs_proc: process(clk, rst)
     begin
-        if rising_edge(clk) then
-            rx_SYNC_FF1 <= sync_byte_in;
-            rx_SYNC_FF2 <= rx_SYNC_FF1;
-            if rst = '1' then                           -- Reset all counters and registers to 0 and check whether auto baud rate and parity have been enabled/disabled
-                rx_tx_synced <= '0';
-                rx_en <= '0';
-                tx_en <= '0';
-                cState <= desynced;
-                baud_count <= to_unsigned(0, 12);
-                baud_os <= '0';
-                bit_count <= to_unsigned(0, 12);
-                bit_count_os <= to_unsigned(0, 12);
-                tick_count <= to_unsigned(0, 12);
-                auto_baud_en_reg <= auto_baud_en;
-                parity_en_reg <= parity_en;
-            else
-                case cState is			
-                    when desynced =>
-                        if auto_baud_en = '0' then      -- If auto baud rate is disabled then use default baud rate.
-                            cState <= synced;
-                            bit_count_os <= to_unsigned(clk_freq / (2 * 16 * baud_rate), 12);
-                        else
-                            rx_tx_synced <= '0';
-                            rx_en <= '0';
-                            tx_en <= '0';
-                            if rx_SYNC_FF2 = '0' then
-                                bit_count_os <= to_unsigned(0, 12);
-                                cState <= syncing;
-                            else
-                                cState <= desynced;
-                            end if;
-                        end if;	
-                            
-                    when syncing =>                     -- Count number of clock pulses between falling edge of start bit and rising edge of LSB of data
-                        rx_tx_synced <= '0';
-                        rx_en <= '0';
-                        tx_en <= '0';
-                        if rx_SYNC_FF2 = '1' then
-                            bit_count_os <= "00000" & tick_count(11 downto 5);
-                            bit_count <= tick_count;
-                            cState <= finish_sync;
-                        else
-                            tick_count <= tick_count + 1;
-                            cState <= syncing;
-                        end if;
-                        
-                    when finish_sync =>                 -- Wait for transmission of the rest of the bits	
-                        rx_tx_synced <= '0';
-                        rx_en <= '0';
-                        tx_en <= '0';
-                        if num_bits < bits_per_frame then
-                            if baud_count < bit_count then 
-                                baud_count <= baud_count + 1;
-                                cState <= finish_sync;
-                            else
-                                baud_count <= to_unsigned(0, 12);
-                                num_bits <= num_bits + 1;
-                                cState <= finish_sync;
-                            end if;
-                        else
-                            baud_count <= to_unsigned(0, 12);
-                               cState <= synced;
-                        end if;
-                    
-                    when synced =>                      -- Once synchronization has been achieved generate required oversampled baud pulse until the module is reset
-                        rx_tx_synced <= '1';
-                        rx_en <= '1';
-                        tx_en <= '1';
-                        if to_integer(baud_count) < to_integer(bit_count_os) then
-                            baud_count <= baud_count + 1;
-                            cState <= synced;
-                        else
-                            baud_count <= to_unsigned(0, 12);
-                            baud_os <= not baud_os;
-                            cState <= synced;
-                        end if;
-                        
-                    when others =>
-                        cState <= desynced;
-                        bit_count_os <= to_unsigned(0, 12);
-                    end case;
+        if rst = '1' then
+            s_use_count_reg <= '0';
+            s_ROM_addr_reg <= "101";
+            s_count_reg <= (others => '0');
+        elsif rising_edge(clk) then
+            if i_rx_busy = '0' and i_tx_busy = '0' then
+                s_use_count_reg <= i_count_src_sel;
+                s_ROM_addr_reg <= unsigned(i_ROM_addr);
+                s_count_reg <= unsigned(i_count_input);
             end if;
         end if;
-    end process sync_proc;
-    
-end baud_beh;
+    end process update_regs_proc;
+
+
+    --------------------------------------------------------------------------------
+    --  Multiplexer logic to choose the clock pulse counter's initial value
+    --  Select Line = s_use_count_reg
+    --  0 => Use Value from ROM
+    --  1 => Use Value from external register
+    --------------------------------------------------------------------------------
+    count_init_val_sel_proc: process(s_use_count_reg, s_count_reg, s_ROM_addr_reg)
+    begin
+        if s_use_count_reg = '1' then
+            s_counter_cmp_val <= s_count_reg;
+        else
+            s_counter_cmp_val <= count_ROM(to_integer(s_ROM_addr_reg));
+        end if;
+    end process count_init_val_sel_proc;
+
+
+    --------------------------------------------------------------------------------
+    --  Process to generate a pulse at 16x the baud rate
+    --------------------------------------------------------------------------------
+    baud_pulse_gen_proc: process(clk, rst)
+    begin
+        if rst = '1' then
+            s_clk_pulse_counter <= to_unsigned(0, 32);
+            s_baud_pulse <= '0';
+        elsif rising_edge(clk) then 
+            if s_clk_pulse_counter = s_counter_cmp_val then
+                s_clk_pulse_counter <= to_unsigned(0, 32);
+                s_baud_pulse <= not s_baud_pulse; 
+            else
+                s_clk_pulse_counter <= s_clk_pulse_counter + 1;
+            end if;
+        end if;
+    end process baud_pulse_gen_proc;
+end baud_rtl;
 
