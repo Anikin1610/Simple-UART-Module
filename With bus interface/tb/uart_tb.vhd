@@ -14,22 +14,24 @@ architecture tb_beh of uart_tb is
     signal tb_rw_en : std_logic;
     signal tb_write_en : std_logic;
     signal tb_write_addr : std_logic_vector(1 downto 0);
-    signal tb_write_data : std_logic_vector(31 downto 0);
+    signal tb_write_data : std_logic_vector(15 downto 0);
     signal tb_read_addr : std_logic_vector(1 downto 0);
-    signal tb_read_data : std_logic_vector(31 downto 0);
+    signal tb_read_data : std_logic_vector(15 downto 0);
     signal tb_tx_out : std_logic;
     
     signal reset, start_up, write_count, start_tx : std_logic := '1';
     signal start_rx : std_logic := '0';
     
-    signal rx_data : std_logic_vector(9 downto 0) := "1101010100";
+    signal rx_data : std_logic_vector(10 downto 0) := "11010101010";
     signal i : integer := 0;
     
     
 begin
     
+--    tb_rx_in <= tb_tx_out;
+    
     DUT:entity work.UART 
-            Port map ( 	clk => clk_12MHz,
+            Port map ( 	i_clk => clk_12MHz,
                         rst => rst,
                         i_rx_in => tb_rx_in,
                         i_rw_en => tb_rw_en,
@@ -66,23 +68,23 @@ begin
             if reset = '1' then
                 rst <= '1';
                 reset <= '0';
-            elsif start_up = '1' then
+            elsif write_count = '1' then
                 rst <= '0';
                 tb_rw_en <= '1';
                 tb_write_en <= '1';
+                tb_write_addr <= "01";
+                tb_write_data <= x"FFFF";
+                write_count <= '0';
+            elsif start_up = '1' then
                 tb_write_addr <= "00";
-                tb_write_data(7 downto 0) <= "11001101";
-                tb_write_data(31 downto 8) <= (others => '0');
+                tb_write_data(7 downto 0) <= "11010101";
+                tb_write_data(15 downto 8) <= (others => '0');
                 start_rx <= '1';
                 start_up <= '0';
-            elsif write_count = '1' then
-                tb_write_addr <= "01";
-                tb_write_data <= x"FFFFFFFF";
-                write_count <= '0';
             elsif start_tx = '1' then
                 tb_write_addr <= "10";
-                tb_write_data(7 downto 0) <= "10101010";
-                tb_write_data(31 downto 8) <= (others => '0');
+                tb_write_data(7 downto 0) <= "01010101";
+                tb_write_data(15 downto 8) <= (others => '0');
                 start_tx <= '0';
             else
                 tb_rw_en <= '0';
@@ -91,23 +93,23 @@ begin
         end if;   
     end process tb_proc;
     
---    rx_proc:process(tb_baud_clk)
---    begin
---        if rising_edge(tb_baud_clk) then
---            if start_rx = '1' then
---                if i < 9 then
---                    tb_rx_in <= rx_data(i);
---                    i <= i + 1;
---                elsif i < 15 then
---                    tb_rx_in <= '1';
---                    i <= i + 1;
---                else
---                    finish;
---                end if;
---            else
---                tb_rx_in <= '1';
---            end if;
---        end if;
---    end process rx_proc;
+    rx_proc:process(tb_baud_clk)
+    begin
+        if rising_edge(tb_baud_clk) then
+            if start_rx = '1' then
+                if i < 10 then
+                    tb_rx_in <= rx_data(i);
+                    i <= i + 1;
+                elsif i < 15 then
+                    tb_rx_in <= '1';
+                    i <= i + 1;
+                else
+                    finish;
+                end if;
+            else
+                tb_rx_in <= '1';
+            end if;
+        end if;
+    end process rx_proc;
     
 end tb_beh;
