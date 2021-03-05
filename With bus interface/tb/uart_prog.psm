@@ -1,0 +1,62 @@
+constant UART, 00
+constant LED, 01
+constant TX, 02
+
+namereg s0, data
+namereg s1, setup
+
+ENABLE INTERRUPT
+
+and setup, 0'd
+add setup, 11000101'b
+output setup, UART
+
+and data, 0'd
+add data, 10101010'b
+output data, TX
+
+and data, 0'd
+add data, 11011010'b
+output data, TX
+
+and data, 0'd
+add data, 00101011'b
+output data, TX
+
+and data, 0'd
+add data, 11111110'b
+output data, TX
+
+and data, 0'd
+add data, 01000100'b
+output data, TX
+
+and data, 0'd
+add data, 00110010'b
+output data, TX
+
+and data, 0'd
+add data, 10000000'b
+output data, TX
+
+and data, 0'd
+add data, 11110100'b
+output data, TX
+
+and data, 0'd
+add data, 00110011'b
+output data, TX
+
+and data, 0'd
+add data, 00110001'b
+output data, TX
+
+intr_en:
+	ENABLE INTERRUPT
+
+loop:
+	jump loop
+	
+
+ADDRESS 3FF
+jump intr_en
