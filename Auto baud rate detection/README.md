@@ -1,8 +1,5 @@
 # UART Module with Auto baud rate detector
 An easy to use UART module with parity and auto baud rate detection.
-
-## Introduction
-  UART is a serial communication system which doesn't require a clock to synchronize between the transmitter and reciever. It sends data 1 bit at a time from the LSB to MSB and is framed by a start bit (generally logic '0') and a stop bit (generally logic '1').
   
 ## Implementation
   The actual HDL files are present in srcs directory and are divided into 4 files
