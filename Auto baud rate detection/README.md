@@ -1,4 +1,4 @@
-# Simple-UART-Module
+# UART Module with Auto baud rate detector
 An easy to use UART module with parity and auto baud rate detection.
 
 ## Introduction
