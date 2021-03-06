@@ -34,6 +34,10 @@ LOAD char, "O"
 CALL check_tx_full
 OUTPUT char, WRITE_TX
 
+LOAD char, " "
+CALL check_tx_full
+OUTPUT char, WRITE_TX
+
 LOAD char, "W"
 CALL check_tx_full
 OUTPUT char, WRITE_TX
@@ -54,6 +58,9 @@ LOAD char, "D"
 CALL check_tx_full
 OUTPUT char, WRITE_TX
 
+LOAD char, "!"
+CALL check_tx_full
+OUTPUT char, WRITE_TX
 
 LOOP:
 	INPUT data, READ_RX
