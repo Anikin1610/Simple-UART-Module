@@ -96,6 +96,7 @@ architecture UART_beh of UART is
     signal s_rx_wr_data : std_logic_vector(7 downto 0);
     signal s_rx_rd_en : std_logic;
     signal s_rx_rd_data : std_logic_vector(7 downto 0);
+    signal s_rx_rd_valid : std_logic;
     signal s_rx_empty : std_logic;
     signal s_rx_full : std_logic;
 
@@ -103,11 +104,13 @@ architecture UART_beh of UART is
     signal s_tx_wr_data : std_logic_vector(7 downto 0);
     signal s_tx_rd_en : std_logic;
     signal s_tx_rd_data : std_logic_vector(7 downto 0);
+    signal s_tx_rd_valid : std_logic;
     signal s_tx_empty : std_logic;
     signal s_tx_full : std_logic;
     
     signal s_rx_buffer_overflow : std_logic;
     signal s_tx_buffer_overflow : std_logic;
+    
 begin
 
     --------------------------------------------------------------------------------
@@ -233,6 +236,7 @@ begin
       i_wr_data => s_rx_wr_data,
       i_rd_en => s_rx_rd_en,
       o_rd_data => s_rx_rd_data,
+      o_rd_valid => s_rx_rd_valid,
       o_empty => s_rx_empty,
       o_full => s_rx_full
     );
@@ -403,7 +407,7 @@ begin
                                 end if;
                             end if;
                             
-                            if s_rx_reg(9) = '1' then                       --  If stop bit is not recieved raise framing error
+                            if s_rx_reg(9) = '1' then  --  If stop bit is not recieved raise framing error
                                 s_rx_frame_err <= '0';
                             else
                                 s_rx_frame_err <= '1';
@@ -441,6 +445,7 @@ begin
       i_wr_data => s_tx_wr_data,
       i_rd_en => s_tx_rd_en,
       o_rd_data => s_tx_rd_data,
+      o_rd_valid => s_tx_rd_valid,
       o_empty => s_tx_empty,
       o_full => s_tx_full
     );
@@ -452,9 +457,9 @@ begin
     --  Only asserted when trasnmitter is ready to transmit and interrupt is 
     --  deasserted.
     --------------------------------------------------------------------------------
-    tx_fifo_rd_proc: process(s_tx_busy, s_tx_empty, intr_cState)
+    tx_fifo_rd_proc: process(s_tx_busy, s_tx_empty, intr_cState, s_tx_rd_valid)
     begin
-        if s_tx_busy = '0' and s_tx_empty = '0' and intr_cState = intr_deassert then
+        if s_tx_busy = '0' and s_tx_empty = '0' and intr_cState = intr_deassert and s_tx_rd_valid = '0' then
             s_tx_rd_en <= '1';
         else
              s_tx_rd_en <= '0';
@@ -478,9 +483,9 @@ begin
     --  Transmission start when the transmit buffer is not empty and the transmitter
     --  is not busy.
     --------------------------------------------------------------------------------
-    start_tx_proc: process(s_tx_empty, s_tx_busy, intr_cState)
+    start_tx_proc: process(s_tx_empty, s_tx_busy, intr_cState, s_tx_rd_valid)
     begin
-        if s_tx_empty = '0' and s_tx_busy = '0' and intr_cState = intr_deassert then
+        if s_tx_busy = '0' and intr_cState = intr_deassert and s_tx_rd_valid = '1' then
             s_tx_start <= '1';
         else
             s_tx_start <= '0';

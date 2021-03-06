@@ -14,6 +14,7 @@ entity fifo_buffer is
         i_wr_data : in std_logic_vector(DATA_WIDTH - 1 downto 0);
         i_rd_en : in std_logic;
         o_rd_data : out std_logic_vector(DATA_WIDTH - 1 downto 0);
+        o_rd_valid : out std_logic;
         o_empty : out std_logic;
         o_full : out std_logic
     );
@@ -36,8 +37,6 @@ begin
     
     s_empty <= '1' when s_fill_count = 0 else '0';
     s_full <= '1' when s_fill_count =  2 ** ADDR_WIDTH else '0';
-    
-    o_rd_data <= ram(to_integer(s_tail_index));
 
     rw_proc: process(i_clk, i_rst)
     begin
@@ -53,11 +52,13 @@ begin
                 end if;
             end if;
 
-            if i_rd_en = '1' then
-                if s_empty = '0' then
-                    s_tail_index <= s_tail_index + 1;
-                    s_fill_count <= s_fill_count - 1;
-                end if;
+            if i_rd_en = '1' and s_empty = '0' then
+                o_rd_data <= ram(to_integer(s_tail_index));
+                s_tail_index <= s_tail_index + 1;
+                s_fill_count <= s_fill_count - 1;  
+                o_rd_valid <= '1';
+            else
+                o_rd_valid <= '0';
             end if;
         end if;
     end process rw_proc; 

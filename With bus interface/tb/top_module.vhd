@@ -1,21 +1,5 @@
 ----------------------------------------------------------------------------------
--- Company: 
--- Engineer: 
--- 
--- Create Date:    10:48:02 02/24/2021 
--- Design Name: 
--- Module Name:    top_module - Behavioral 
--- Project Name: 
--- Target Devices: 
--- Tool versions: 
--- Description: 
---
--- Dependencies: 
---
--- Revision: 
--- Revision 0.01 - File Created
--- Additional Comments: 
---
+--  Top module for interfacing the UART module with the PicoBlaze processor
 ----------------------------------------------------------------------------------
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -56,7 +40,7 @@ architecture Behavioral of top_module is
 		);
 	END COMPONENT;
 	
-	COMPONENT uart_prog
+	COMPONENT uart_synth
 	generic( 
 		C_FAMILY : string := "S6";
 		C_RAM_SIZE_KWORDS : integer := 1;
@@ -85,7 +69,14 @@ architecture Behavioral of top_module is
 	
 begin
 
-    o_led <= s_read_bus(7 downto 0);
+    led_write_proc: process(i_clk12MHz)
+    begin
+        if rising_edge(i_clk12MHz) then
+            if s_port_id = x"05" then
+                o_led <= s_write_bus;
+            end if;
+        end if;
+    end process led_write_proc;
 
 	Inst_kcpsm6: kcpsm6 
 	PORT MAP(
@@ -104,7 +95,7 @@ begin
 		reset => s_kcpsm6_reset,
 		clk => i_clk12MHz);
 	
-	Inst_basic_prog: uart_prog 
+	Inst_basic_prog: uart_synth 
 	generic map( 
 		C_FAMILY => "S6",
 		C_RAM_SIZE_KWORDS => 1,
@@ -149,7 +140,7 @@ begin
 		i_write_addr => s_port_id(1 downto 0),
 		i_write_data(15 downto 8) => x"00",
 		i_write_data(7 downto 0) => s_write_bus,
-		i_read_addr => "10",
+		i_read_addr => s_port_id(1 downto 0),
 		o_read_data => s_read_bus,
 		o_tx_out => o_tx,
         o_intr => kcpsm6_interrupt,

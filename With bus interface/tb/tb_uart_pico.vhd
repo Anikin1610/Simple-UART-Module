@@ -54,46 +54,4 @@ BEGIN
 		i_clk12MHz <= '1';
 		wait for clk_period/2;
    end process;
- 
---	wait_proc: process(i_clk12MHz)
---		variable count : integer := 0;
---	begin
---		if rising_edge(i_clk12MHz) then
---			if count < 10 then
---				count := count + 1;
---			else
---				start_rx <= '1';
---			end if;
---		end if;
---	end process;
-
---   -- Stimulus process
---   stim_proc: process
---   begin		
---		if start_rx = '1' then
---			i_rx <= '1';
---			wait for baud_period;
---			i_rx <= '0';
---			wait for baud_period;
---			i_rx <= '1';
---			wait for baud_period;
---			i_rx <= '0';
---			wait for baud_period;
---			i_rx <= '1';
---			wait for baud_period;
---			i_rx <= '0';
---			wait for baud_period;
---			i_rx <= '1';
---			wait for baud_period;
---			i_rx <= '0';
---			wait for baud_period;
---			i_rx <= '1';
---			wait for baud_period;
---			i_rx <= '0';
---			wait for baud_period;
---			i_rx <= '1';
---			wait;
---		end if;
---   end process;
-
 END;
