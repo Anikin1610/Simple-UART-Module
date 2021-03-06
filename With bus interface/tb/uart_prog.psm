@@ -1,62 +1,71 @@
-constant UART, 00
-constant LED, 01
-constant TX, 02
-
-namereg s0, data
-namereg s1, setup
+constant UART_CONFIG, 00
+constant READ_RX_EMPTY, 02
+constant READ_TX_FULL, 01
+constant WRITE_TX, 02
+constant READ_RX, 03
+constant LED, 05
+	
+NAMEREG sF, char
+NAMEREG sE, data
+NAMEREG sD, setup
 
 ENABLE INTERRUPT
 
-and setup, 0'd
-add setup, 11000101'b
-output setup, UART
+LOAD setup, 11000101'b
+OUTPUT setup, UART_CONFIG
 
-and data, 0'd
-add data, 10101010'b
-output data, TX
+LOAD char, "H"
+CALL check_tx_full
+OUTPUT char, WRITE_TX
 
-and data, 0'd
-add data, 11011010'b
-output data, TX
+LOAD char, "E"
+CALL check_tx_full
+OUTPUT char, WRITE_TX
 
-and data, 0'd
-add data, 00101011'b
-output data, TX
+LOAD char, "L"
+CALL check_tx_full
+OUTPUT char, WRITE_TX
 
-and data, 0'd
-add data, 11111110'b
-output data, TX
+LOAD char, "L"
+CALL check_tx_full
+OUTPUT char, WRITE_TX
 
-and data, 0'd
-add data, 01000100'b
-output data, TX
+LOAD char, "O"
+CALL check_tx_full
+OUTPUT char, WRITE_TX
 
-and data, 0'd
-add data, 00110010'b
-output data, TX
+LOAD char, "W"
+CALL check_tx_full
+OUTPUT char, WRITE_TX
 
-and data, 0'd
-add data, 10000000'b
-output data, TX
+LOAD char, "O"
+CALL check_tx_full
+OUTPUT char, WRITE_TX
 
-and data, 0'd
-add data, 11110100'b
-output data, TX
+LOAD char, "R"
+CALL check_tx_full
+OUTPUT char, WRITE_TX
 
-and data, 0'd
-add data, 00110011'b
-output data, TX
+LOAD char, "L"
+CALL check_tx_full
+OUTPUT char, WRITE_TX
 
-and data, 0'd
-add data, 00110001'b
-output data, TX
+LOAD char, "D"
+CALL check_tx_full
+OUTPUT char, WRITE_TX
 
-intr_en:
-	ENABLE INTERRUPT
 
-loop:
-	jump loop
+LOOP:
+	INPUT data, READ_RX
+	OUTPUT data, LED
+	JUMP LOOP
 	
-
+check_tx_full:
+	CHCK_LOOP:
+		INPUT s0, READ_TX_FULL
+		COMPARE s0, 1'd
+		JUMP Z, CHCK_LOOP
+	RETURN
+	
 ADDRESS 3FF
-jump intr_en
+RETURNI ENABLE
